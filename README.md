@@ -1,5 +1,3 @@
-// ...existing code...
-
 # EasyCopy
 
 EasyCopy is a small cross-platform command-line tool to quickly copy files or directories (useful for game saves and simple backups). It's lightweight, easy to compile, and simple to modify.
