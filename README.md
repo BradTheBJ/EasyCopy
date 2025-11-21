@@ -2,8 +2,6 @@
 
 **EasyCopy** is a simple, cross-platform command-line tool for quickly copying files. It’s designed to help anyone who needs to move files between folders efficiently—whether for game saves, backups, or general file management.
 
-Badges: ![build/status](#) ![license](#) ![release](#)
-
 ## What it does
 - Copy all files inside a folder to another location.  
 - Save repeated copy tasks as shortcuts.  
