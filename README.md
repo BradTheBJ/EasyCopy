@@ -9,7 +9,7 @@ See implementation: `src/EasyCopy.cpp`.
 ## Highlights
 
 - Recursively copy a source directory into a destination (creates destination dirs, overwrites files).
-- If the destination directory exists and is not empty, EasyCopy will prompt for confirmation before copying.
+- If the destination exists and is not empty, EasyCopy prompts for confirmation before copying.
 - Save, run, list, and delete named shortcuts.
 - Global config stored in your home directory.
 - Validates source exists and is a directory before copying.
@@ -84,12 +84,12 @@ ec list
 
 ---
 
-## Installation (recommended: prebuilt binary)
+## Installation (prebuilt binary recommended)
 
 Windows
 1. Download the 64‑bit `ec.exe`.
 2. Place it in a permanent folder, e.g. `C:\Tools\EasyCopy\`.
-3. Rename to `ec.exe` for consistent commands:
+3. Rename to `ec.exe` for consistent usage:
 ```powershell
 Rename-Item "DownloadedName.exe" "ec.exe"
 ```
@@ -118,7 +118,7 @@ Note: prebuilt 32‑bit binaries are provided only for Linux. Windows and macOS 
 
 ## Local compilation
 
-Requirements: C++17 compiler with <filesystem> support (GCC 9+, recent Clang, or MSVC 2017+).
+Requirements: C++17 compiler with `<filesystem>` support (GCC 9+, recent Clang, or MSVC 2017+).
 
 Linux / macOS:
 ```bash
@@ -126,7 +126,7 @@ g++ -std=c++17 src/EasyCopy.cpp -o ec
 # or
 clang++ -std=c++17 src/EasyCopy.cpp -o ec
 ```
-If <filesystem> errors occur with older GCC:
+If `<filesystem>` errors occur with older GCC:
 ```bash
 g++ -std=c++17 src/EasyCopy.cpp -lstdc++fs -o ec
 ```
@@ -145,7 +145,7 @@ After build, rename to `ec`/`ec.exe` and move to a PATH location.
 
 ---
 
-## Adding EasyCopy to PATH (summary)
+## Adding EasyCopy to PATH
 
 Windows (PowerShell):
 ```powershell
@@ -171,13 +171,15 @@ sudo chmod +x /usr/local/bin/ec
 which ec
 ```
 
+Recommendation: rename the executable to `ec` (Linux/macOS) or `ec.exe` (Windows) before adding to PATH so commands and shortcuts remain consistent.
+
 ---
 
 ## 32‑bit compatibility
 
-- Only Linux receives prebuilt 32‑bit binaries.
+- Prebuilt 32‑bit binaries: only for Linux.
+- Windows and macOS prebuilt releases are 64‑bit only.
 - To build 32‑bit on Linux: install multilib packages (e.g. `gcc-multilib`) and compile with `-m32`.
-- For Windows 32‑bit, use a 32‑bit MinGW toolchain.
 - Modern macOS (10.15+) does not support 32‑bit user apps.
 
 ---
@@ -206,9 +208,31 @@ PATH not found — verify:
 which ec        # Linux/macOS
 where.exe ec    # Windows
 ```
-On Windows, `setx` needs a new shell session.
+On Windows, `setx` requires a new shell session.
 
 Build errors — check compiler and consider `-lstdc++fs` or upgrading.
+
+---
+
+## Avoiding merge conflicts (contribution note)
+
+To minimize README merge conflicts when opening a pull request:
+- Always pull/rebase the latest `main` before starting work:
+```bash
+git fetch origin
+git checkout -b my-branch
+git rebase origin/main   # or git pull --rebase
+```
+- Keep PRs small and focused (one change per PR).
+- If editing the README, prefer adding a short new section or appending content rather than rewording large blocks others may edit.
+- If a conflict occurs, resolve locally and rebase before pushing:
+```bash
+git rebase --continue
+git push --force-with-lease
+```
+- If unsure, open an issue first describing the change.
+
+Following this workflow reduces conflicts and speeds review.
 
 ---
 
