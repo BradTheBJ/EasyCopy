@@ -1,236 +1,156 @@
+// ...existing code...
+
 # EasyCopy
 
-EasyCopy is a small command-line tool I created specifically for myself to copy game save files quickly.  
-It may not be suitable for everyone, but it is simple, easy to compile, and easy to modify.
+EasyCopy is a small cross-platform command-line tool to quickly copy files or directories (useful for game saves and simple backups). It's lightweight, easy to compile, and simple to modify.
 
-A strong recommendation: **add the `ec` executable to your system PATH** so you can call it from anywhere.  
-A full guide is included below.
+Quick recommendation: add the `ec` executable to your system PATH so you can run it from anywhere.
 
 ---
 
 ## Features
 
-- Copy files or entire directories  
-- Create named shortcuts for frequently used copy operations  
-- Execute saved shortcuts by name  
-- Delete shortcuts  
-- Validates source paths before copying  
-- Stores shortcuts in a simple config file (`easycopy_config.cpp`)  
-- Fully cross-platform (Windows, macOS, Linux)  
+- Copy files or entire directories (recursive)
+- Create named shortcuts for frequent copy operations
+- Execute or delete saved shortcuts by name
+- Validate source paths before copying
+- Shortcuts stored in a simple config file (`easycopy_config.cpp`)
+- Cross-platform: Windows, macOS, Linux
 
 ---
 
-# Usage
+## Usage
 
-Below are all supported operations.
+General syntax:
 
----
-
-## 1. Execute a Shortcut
-
+- Run a saved shortcut:
+```bash
 ec <shortcutName>
+```
 
-
-Example:
-
-ec bg3
-
-
-Runs the previously saved command associated with `bg3`.
-
----
-
-## 2. Create a Shortcut
-
+- Create a shortcut:
+```bash
 ec shortcut <name> copy "<source>" "<destination>"
+```
 
-
-Example:
-
-ec shortcut bg3 copy "C:\Games\BG3\Saves" "D:\Backup\BG3"
-
-
-This adds a line to `easycopy_config.cpp` storing your copy command.
-
----
-
-## 3. Delete a Shortcut
-
+- Delete a shortcut:
+```bash
 ec delete <name>
+```
 
-
-Example:
-
-ec delete bg3
-
-
----
-
-## 4. Copy Without Using Shortcuts
-
+- One-off copy (no shortcut):
+```bash
 ec copy "<source>" "<destination>"
+```
 
+Notes:
+- Quote any path containing spaces.
+- Copying is recursive and overwrites existing files.
+- Shortcuts are appended to and read from `easycopy_config.cpp`. Manual edits are allowed but must follow the same formatting the program uses.
 
-Example:
+---
 
+## Examples
+
+Run saved shortcut:
+```bash
+ec bg3
+```
+
+Create a shortcut named `bg3`:
+```bash
+ec shortcut bg3 copy "C:\Games\BG3\Saves" "D:\Backup\BG3"
+```
+
+Delete the `bg3` shortcut:
+```bash
+ec delete bg3
+```
+
+One-off copy:
+```bash
 ec copy "/home/me/saves" "/mnt/backup/saves"
-
-
----
-
-# Adding EasyCopy to Your PATH (Recommended)
-
-Adding `ec` to your PATH lets you run it from any directory without typing the full path to the executable.
-
-Below is a complete beginner-friendly guide for all platforms.
+```
 
 ---
 
-# Windows PATH 
+## Add `ec` to PATH (recommended)
 
-### Step 1 — Choose a permanent folder  
-Create a directory such as:
-
-C:\Tools\EasyCopy
-
-
-Place your `ec.exe` inside it.
-
-### Step 2 — Add it to PATH  
-Open PowerShell and run:
-
+Windows (PowerShell)
+1. Put `ec.exe` in a permanent folder, e.g. `C:\Tools\EasyCopy`.
+2. Run (adds to user PATH):
+```powershell
 setx PATH "$env:PATH;C:\Tools\EasyCopy"
+```
+3. Restart PowerShell/Command Prompt.
 
-
-### Step 3 — Restart PowerShell  
-Now you should be able to run:
-
-ec
-
-
-from anywhere.
-
----
-
-# macOS PATH 
-
-### Step 1 — Move the executable  
-Run:
-
+macOS
+Option 1 — system location:
+```bash
 sudo mv ec /usr/local/bin/
 sudo chmod +x /usr/local/bin/ec
+```
 
-
-This places EasyCopy in a directory that’s already on PATH.
-
-### Alternative Method  
-If you prefer a custom directory:
-
-1. Create a folder, e.g.:
-
+Option 2 — custom folder:
+```bash
 mkdir -p ~/Tools/EasyCopy
-
-
-2. Move the binary:
-
 mv ec ~/Tools/EasyCopy/
-
-
-3. Edit your `~/.zshrc`:
-
-export PATH="$PATH:$HOME/Tools/EasyCopy"
-
-
-4. Reload:
-
+# Add to shell profile (e.g. ~/.zshrc):
+echo 'export PATH="$PATH:$HOME/Tools/EasyCopy"' >> ~/.zshrc
 source ~/.zshrc
+```
 
-
-You can now run:
-
-ec
-
-
-globally.
-
----
-
-# Linux PATH 
-
-### Method 1 — The standard way  
-Move the binary:
-
+Linux
+Option 1 — system location:
+```bash
 sudo mv ec /usr/local/bin/
 sudo chmod +x /usr/local/bin/ec
+```
 
-
-This works for most distros.
-
-### Method 2 — Custom directory  
-1. Create a tool directory:
-
+Option 2 — custom folder:
+```bash
 mkdir -p ~/tools
-
-
-2. Move `ec`:
-
 mv ec ~/tools/
-
-
-3. Add to PATH by editing `~/.bashrc`:
-
-export PATH="$PATH:$HOME/tools"
-
-
-4. Reload:
-
+# Add to ~/.bashrc:
+echo 'export PATH="$PATH:$HOME/tools"' >> ~/.bashrc
 source ~/.bashrc
-
-
-Now `ec` runs from anywhere.
+```
 
 ---
 
-# Compiling EasyCopy
+## Compiling
 
 Requires a C++17 compiler with filesystem support.
 
----
-
-## Windows (Clang or MinGW)
-
+Windows (Clang or MinGW):
+```bash
 clang++ -std=c++17 EasyCopy.cpp -o ec.exe
-
-
-or
-
+# or
 g++ -std=c++17 EasyCopy.cpp -o ec.exe
+```
 
-
----
-
-## macOS
-
+macOS:
+```bash
 clang++ -std=c++17 EasyCopy.cpp -o ec
+```
 
-
----
-
-## Linux
-
+Linux:
+```bash
 g++ -std=c++17 EasyCopy.cpp -o ec
+```
 
-
-If needed:
-
+On Debian/Ubuntu, install build tools if needed:
+```bash
 sudo apt install build-essential
-
+```
 
 ---
 
-# Notes
+## Notes & Troubleshooting
 
-- Shortcuts are read from and written to `easycopy_config.cpp`  
-- Manual editing is allowed but formatting must match what the program generates  
-- Quote any path containing spaces  
-- Copying is recursive and overwrites existing files
+- If a shortcut fails, verify the source path exists and permissions are sufficient.
+- Manual edits to `easycopy_config.cpp` are accepted but must match the program's expected format.
+- If multiple copies are running, be cautious about simultaneous writes to the same destination.
+- For large transfers consider using a dedicated backup tool; EasyCopy is intended for simple, local copy tasks.
+
+---
