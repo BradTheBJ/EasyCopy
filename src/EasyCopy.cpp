@@ -4,7 +4,6 @@
 #include <fstream>
 #include <filesystem>
 #include <string>
-#include <vector>
 #include <map>
 
 namespace fs = std::filesystem;
@@ -24,7 +23,6 @@ fs::path getGlobalConfigPath() {
 std::map<std::string, std::pair<std::string, std::string>> loadShortcuts() {
     std::map<std::string, std::pair<std::string, std::string>> shortcuts;
     fs::path configPath = getGlobalConfigPath();
-
     if (!fs::exists(configPath)) return shortcuts;
 
     std::ifstream file(configPath);
@@ -79,15 +77,16 @@ bool copyFolder(const fs::path& src, const fs::path& dst) {
 
     // Perform recursive file copy
     for (auto& entry : fs::recursive_directory_iterator(src)) {
-        const auto& path = entry.path();
-        auto relative = fs::relative(path, src);
+        auto relative = fs::relative(entry.path(), src);
         fs::path destPath = dst / relative;
 
         // Create directories or copy files
         if (fs::is_directory(path)) {
             fs::create_directories(destPath);
+            if (verbose) std::cout << "[DIR ] Created: " << destPath << "\n";
         } else {
-            fs::copy_file(path, destPath, fs::copy_options::overwrite_existing);
+            fs::copy_file(entry.path(), destPath, fs::copy_options::overwrite_existing);
+            if (verbose) std::cout << "[FILE] Copied: " << entry.path() << " -> " << destPath << "\n";
         }
     }
 
@@ -98,9 +97,9 @@ int main(int argc, char* argv[]) {
     // Basic command usage guide
     if (argc < 2) {
         std::cout << "Usage:\n";
-        std::cout << "  ec copy <src> <dst>\n";
-        std::cout << "  ec shortcut <name> copy <src> <dst>\n";
-        std::cout << "  ec <shortcutName>\n";
+        std::cout << "  ec copy <src> <dst> [verbose]\n";
+        std::cout << "  ec shortcut <name> copy <src> <dst> [verbose]\n";
+        std::cout << "  ec <shortcutName> [verbose]\n";
         std::cout << "  ec delete <name>\n";
         std::cout << "  ec list\n";
         return 0;
@@ -109,6 +108,7 @@ int main(int argc, char* argv[]) {
     // Load all shortcuts from config
     std::map<std::string, std::pair<std::string, std::string>> shortcuts = loadShortcuts();
     std::string command = argv[1];
+    bool verbose = (argc >= 2 && std::string(argv[argc - 1]) == "verbose");
 
     // Direct copy command
     if (command == "copy" && argc == 4) {

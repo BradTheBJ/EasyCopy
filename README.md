@@ -77,6 +77,11 @@ ec delete mygame
 ec list
 ```
 
+Verbose example:
+```bash
+ec copy "/home/me/saves" "/mnt/backup/saves" verbose
+```
+
 ---
 
 ## Installation (recommended: prebuilt binary)
@@ -177,7 +182,7 @@ which ec
 
 ---
 
-## Troubleshooting (actionable)
+## 32‑bit compatibility
 
 Failed copy — check source:
 ```bash
