@@ -9,7 +9,6 @@ See implementation: `src/EasyCopy.cpp`.
 ## Highlights
 
 - Recursively copy a source directory into a destination (creates destination dirs, overwrites files).
-- If the destination exists and is not empty, EasyCopy prompts for confirmation before copying.
 - Save, run, list, and delete named shortcuts.
 - Global config stored in your home directory.
 - Validates source exists and is a directory before copying.
@@ -42,38 +41,6 @@ List shortcuts:
 ```bash
 ec list
 ```
-
-Notes:
-- Quote paths containing spaces.
-- Running `ec` with no args prints usage.
-
----
-
-## Verbose mode (new)
-
-- Enable detailed output by adding the literal word `verbose` as the last argument.
-- Syntax examples:
-  - One-off copy with verbose:
-    ```bash
-    ec copy "<source>" "<destination>" verbose
-    ```
-  - Create shortcut and copy immediately with verbose:
-    ```bash
-    ec shortcut mygame copy "<source>" "<destination>" verbose
-    ```
-  - Run a saved shortcut with verbose:
-    ```bash
-    ec mygame verbose
-    ```
-- What verbose shows:
-  - Directory creation lines: "[DIR ] Created: <path>"
-  - File copy lines:      "[FILE] Copied: <src> -> <dst>"
-  - Final status messages indicating success or failure.
-- Note: When creating a shortcut with `verbose`, EasyCopy saves the shortcut and then attempts the copy immediately, printing per-file and per-directory messages.
-
-- Confirmation behavior:
-  - EasyCopy prompts for confirmation if the source/destination conditions require it (the program prompts when the folder is not empty). Enter `y` or `Y` to proceed; any other response cancels the operation.
-  - Verbose output appears after you confirm.
 
 ---
 
@@ -117,12 +84,12 @@ ec copy "/home/me/saves" "/mnt/backup/saves" verbose
 
 ---
 
-## Installation (prebuilt binary recommended)
+## Installation (recommended: prebuilt binary)
 
 Windows
 1. Download the 64‑bit `ec.exe`.
 2. Place it in a permanent folder, e.g. `C:\Tools\EasyCopy\`.
-3. Rename to `ec.exe` for consistent usage:
+3. Rename to `ec.exe` for consistent commands:
 ```powershell
 Rename-Item "DownloadedName.exe" "ec.exe"
 ```
@@ -133,7 +100,7 @@ setx PATH "$env:PATH;C:\Tools\EasyCopy"
 ```
 
 macOS / Linux
-1. Rename the downloaded file to `ec`, make it executable and move to a PATH directory:
+1. Rename the downloaded file to `ec` and move to a PATH directory:
 ```bash
 mv downloaded-file ec
 chmod +x ec
@@ -145,13 +112,13 @@ which ec
 ec --help
 ```
 
-Note: prebuilt 32‑bit binaries are provided only for Linux. Windows and macOS prebuilt releases are 64‑bit only.
+Note: prebuilt 32‑bit binaries are provided only for Linux. Windows and macOS prebuilt releases are 64‑bit only. If you need a 32‑bit binary on those platforms, build locally.
 
 ---
 
 ## Local compilation
 
-Requirements: C++17 compiler with `<filesystem>` support (GCC 9+, recent Clang, or MSVC 2017+).
+Requirements: C++17 compiler with <filesystem> support (GCC 9+, recent Clang, or MSVC 2017+).
 
 Linux / macOS:
 ```bash
@@ -159,7 +126,7 @@ g++ -std=c++17 src/EasyCopy.cpp -o ec
 # or
 clang++ -std=c++17 src/EasyCopy.cpp -o ec
 ```
-If `<filesystem>` errors occur with older GCC:
+If <filesystem> errors occur with older GCC:
 ```bash
 g++ -std=c++17 src/EasyCopy.cpp -lstdc++fs -o ec
 ```
@@ -178,7 +145,7 @@ After build, rename to `ec`/`ec.exe` and move to a PATH location.
 
 ---
 
-## Adding EasyCopy to PATH
+## Adding EasyCopy to PATH (summary)
 
 Windows (PowerShell):
 ```powershell
@@ -204,20 +171,18 @@ sudo chmod +x /usr/local/bin/ec
 which ec
 ```
 
-Recommendation: rename the executable to `ec` (Linux/macOS) or `ec.exe` (Windows) before adding to PATH so commands and shortcuts remain consistent.
-
 ---
 
 ## 32‑bit compatibility
 
-- Prebuilt 32‑bit binaries: only for Linux.
-- Windows and macOS prebuilt releases are 64‑bit only.
+- Only Linux receives prebuilt 32‑bit binaries.
 - To build 32‑bit on Linux: install multilib packages (e.g. `gcc-multilib`) and compile with `-m32`.
+- For Windows 32‑bit, use a 32‑bit MinGW toolchain.
 - Modern macOS (10.15+) does not support 32‑bit user apps.
 
 ---
 
-## Troubleshooting (actionable)
+## 32‑bit compatibility
 
 Failed copy — check source:
 ```bash
@@ -241,7 +206,7 @@ PATH not found — verify:
 which ec        # Linux/macOS
 where.exe ec    # Windows
 ```
-On Windows, `setx` requires a new shell session.
+On Windows, `setx` needs a new shell session.
 
 Build errors — check compiler and consider `-lstdc++fs` or upgrading.
 
@@ -258,6 +223,6 @@ Build errors — check compiler and consider `-lstdc++fs` or upgrading.
 ## License & contributions
 
 - License: GPL‑3.0. See LICENSE.
-- Contributions welcome: fork, patch, open a PR.
+- Contributions welcome: fork, patch, and open a PR. Prefer small, documented changes.
 
 Source in `src/EasyCopy.cpp` is authoritative for CLI behavior.
