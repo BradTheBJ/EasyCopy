@@ -1,191 +1,135 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <iostream>
-#include <string>
-#include <filesystem>
 #include <fstream>
+#include <filesystem>
+#include <string>
+#include <vector>
+#include <map>
 
 namespace fs = std::filesystem;
 
+// Get global config path
+fs::path getGlobalConfigPath() {
+#ifdef _WIN32
+    char* userProfile = std::getenv("USERPROFILE");
+    return fs::path(userProfile) / "easycopy_config.txt"; // Windows
+#else
+    char* home = std::getenv("HOME");
+    return fs::path(home) / ".easycopy_config.txt"; // Linux/macOS
+#endif
+}
+
+// Load shortcuts from config (supports spaces using '|' delimiter)
+std::map<std::string, std::pair<std::string, std::string>> loadShortcuts() {
+    std::map<std::string, std::pair<std::string, std::string>> shortcuts;
+    fs::path configPath = getGlobalConfigPath();
+
+    if (!fs::exists(configPath)) return shortcuts;
+
+    std::ifstream file(configPath);
+    std::string line;
+    while (std::getline(file, line)) {
+        size_t pos1 = line.find('|');
+        size_t pos2 = line.rfind('|');
+        if (pos1 != std::string::npos && pos2 != pos1) {
+            std::string name = line.substr(0, pos1);
+            std::string src = line.substr(pos1 + 1, pos2 - pos1 - 1);
+            std::string dst = line.substr(pos2 + 1);
+            shortcuts[name] = {src, dst};
+        }
+    }
+    return shortcuts;
+}
+
+// Save shortcuts to config
+void saveShortcuts(const std::map<std::string, std::pair<std::string, std::string>>& shortcuts) {
+    fs::path configPath = getGlobalConfigPath();
+    std::ofstream file(configPath, std::ios::trunc);
+    for (auto& [name, paths] : shortcuts) {
+        file << name << "|" << paths.first << "|" << paths.second << "\n";
+    }
+}
+
+// Copy all files inside source to destination recursively
+bool copyFolder(const fs::path& src, const fs::path& dst) {
+    if (!fs::exists(src) || !fs::is_directory(src)) return false;
+    if (!fs::exists(dst)) fs::create_directories(dst);
+
+    for (auto& entry : fs::recursive_directory_iterator(src)) {
+        const auto& path = entry.path();
+        auto relative = fs::relative(path, src);
+        fs::path destPath = dst / relative;
+
+        if (fs::is_directory(path)) {
+            fs::create_directories(destPath);
+        } else {
+            fs::copy_file(path, destPath, fs::copy_options::overwrite_existing);
+        }
+    }
+    return true;
+}
+
 int main(int argc, char* argv[]) {
-    // Open the config file for appending shortcuts
-    std::ofstream outfile("easycopy_config.cpp", std::ios::app);
+    if (argc < 2) {
+        std::cout << "Usage:\n";
+        std::cout << "  ec copy <src> <dst>\n";
+        std::cout << "  ec shortcut <name> copy <src> <dst>\n";
+        std::cout << "  ec <shortcutName>\n";
+        std::cout << "  ec delete <name>\n";
+        std::cout << "  ec list\n";
+        return 0;
+    }
 
-    bool shortcut = false;
-    std::string optionalCommand1, optionalCommand2, command, source, destination, extraArg;
-    int i = 1;
+    std::map<std::string, std::pair<std::string, std::string>> shortcuts = loadShortcuts();
+    std::string command = argv[1];
 
-    // === Mode 1: Execute a saved shortcut ===
-    if (argc == 2) {
-        std::string shortcutName = argv[1];
-        std::ifstream infile("easycopy_config.cpp");
-        std::string line;
-
-        // Search for the shortcut in the config file
-        while (std::getline(infile, line)) {
-            std::size_t pos = line.find(shortcutName + " = \"");
-            if (pos != std::string::npos) {
-                std::size_t end = line.find("\";", pos + shortcutName.length() + 4);
-                if (end != std::string::npos) {
-                    std::string value = line.substr(pos + shortcutName.length() + 4,
-                                                   end - pos - shortcutName.length() - 4);
-
-                    // Extract source and destination paths from the saved command
-                    size_t cmdPos = value.find("copy ");
-                    if (cmdPos == std::string::npos) {
-                        std::cerr << "Shortcut command format invalid.\n";
-                        return 1;
-                    }
-
-                    size_t srcStart = value.find('"', cmdPos) + 1;
-                    size_t srcEnd = value.find('"', srcStart);
-                    std::string execSource = value.substr(srcStart, srcEnd - srcStart);
-
-                    size_t dstStart = value.find('"', srcEnd + 1) + 1;
-                    size_t dstEnd = value.find('"', dstStart);
-                    std::string execDestination = value.substr(dstStart, dstEnd - dstStart);
-
-                    std::cout << "Executing shortcut: copy " << execSource << " -> " << execDestination << std::endl;
-
-                    // Perform the copy using filesystem API
-                    fs::path srcPath = execSource;
-                    fs::path dstPath = execDestination;
-
-                    if (!fs::exists(srcPath)) {
-                        std::cerr << "Source path does not exist: " << srcPath << "\n";
-                        return 1;
-                    }
-
-                    try {
-                        fs::copy(srcPath, dstPath, fs::copy_options::recursive | fs::copy_options::overwrite_existing);
-                        std::cout << "Copy completed.\n";
-                    } catch (fs::filesystem_error& e) {
-                        std::cerr << "Filesystem error: " << e.what() << "\n";
-                    }
-
-                    return 0;
-                }
+    if (command == "copy" && argc == 4) {
+        fs::path src = argv[2];
+        fs::path dst = argv[3];
+        if (copyFolder(src, dst)) {
+            std::cout << "Copied successfully.\n";
+        } else {
+            std::cout << "Failed to copy. Check source path.\n";
+        }
+    } 
+    else if (command == "shortcut" && argc == 6 && std::string(argv[3]) == "copy") {
+        std::string name = argv[2];
+        std::string src = argv[4];
+        std::string dst = argv[5];
+        shortcuts[name] = {src, dst};
+        saveShortcuts(shortcuts);
+        std::cout << "Shortcut '" << name << "' saved.\n";
+    } 
+    else if (command == "delete" && argc == 3) {
+        std::string name = argv[2];
+        if (shortcuts.erase(name)) {
+            saveShortcuts(shortcuts);
+            std::cout << "Shortcut '" << name << "' deleted.\n";
+        } else {
+            std::cout << "Shortcut not found.\n";
+        }
+    } 
+    else if (command == "list") {
+        if (shortcuts.empty()) {
+            std::cout << "No shortcuts saved.\n";
+        } else {
+            std::cout << "Saved shortcuts:\n";
+            for (auto& [name, paths] : shortcuts) {
+                std::cout << "  " << name << ": " << paths.first << " -> " << paths.second << "\n";
             }
         }
-
-        std::cerr << "Shortcut '" << shortcutName << "' not found.\n";
-        return 1;
     }
-
-    // === Mode 2: Delete a shortcut ===
-    if (argc == 3) {
-        command = argv[1];
-        std::string shortcutName = argv[2];
-
-        if (command == "delete") {
-            // Open config for reading and a temp file for writing
-            std::ifstream infile("easycopy_config.cpp");
-            std::ofstream tempfile("easycopy_config.tmp");
-
-            if (!infile.is_open() || !tempfile.is_open()) {
-                std::cerr << "Error opening config or temp file.\n";
-                return 1;
-            }
-
-            std::string line;
-            bool found = false;
-
-            // Copy all lines except the one matching the shortcut
-            while (std::getline(infile, line)) {
-                if (line.find(shortcutName + " = \"") == std::string::npos) {
-                    tempfile << line << "\n";
-                } else {
-                    found = true;
-                }
-            }
-
-            infile.close();
-            tempfile.close();
-
-            // Replace original config with the temp file
-            std::filesystem::remove("easycopy_config.cpp");
-            std::filesystem::rename("easycopy_config.tmp", "easycopy_config.cpp");
-
-            if (found)
-                std::cout << "Shortcut '" << shortcutName << "' deleted successfully.\n";
-            else
-                std::cerr << "Shortcut '" << shortcutName << "' not found.\n";
-
-            return 0;
+    else if (shortcuts.count(command)) {
+        auto [src, dst] = shortcuts[command];
+        if (copyFolder(src, dst)) {
+            std::cout << "Copied successfully via shortcut '" << command << "'.\n";
+        } else {
+            std::cout << "Failed to copy. Check source path.\n";
         }
-    }
-
-    // === Mode 3: Optional commands + copy ===
-    if (argc < 4 || argc > 7) {
-        std::cerr << "Usage: " << argv[0]
-                  << " [optional_command1] [optional_command2_if_shortcut] copy source destination [optionalArg]\n";
-        return 1;
-    }
-
-    // Handle optional first command (e.g., "shortcut")
-    if (std::string(argv[i]) != "copy") {
-        optionalCommand1 = argv[i++];
-        if (optionalCommand1 == "shortcut") {
-            shortcut = true;
-        }
-    }
-
-    // Handle optional second command if first was a shortcut
-    if (shortcut) {
-        if (i >= argc || std::string(argv[i]) == "copy") {
-            std::cerr << "Error: You must provide a name for the shortcut as a second command.\n";
-            return 1;
-        }
-        optionalCommand2 = argv[i++];
-    } else if (i < argc && std::string(argv[i]) != "copy") {
-        optionalCommand2 = argv[i++];
-    }
-
-    // Next argument must be the "copy" command
-    if (i >= argc) {
-        std::cerr << "Error: Missing 'copy' command.\n";
-        return 1;
-    }
-    command = argv[i++];
-
-    // Source and destination arguments
-    if (i + 1 >= argc) {
-        std::cerr << "Error: Missing source or destination.\n";
-        return 1;
-    }
-    source = argv[i++];
-    destination = argv[i++];
-    if (argc > i) extraArg = argv[i];
-
-    // Validate that the source exists
-    fs::path srcPath = source;
-    fs::path dstPath = destination;
-    if (!fs::exists(srcPath)) {
-        std::cerr << "Error: Source path does not exist: " << source << "\n";
-        return 1;
-    }
-
-    // Handle shortcut creation by saving to config
-    if (shortcut) {
-        // Save paths in quotes to preserve spaces/apostrophes
-        outfile << optionalCommand2 << " = \""
-                << command << " "
-                << "\"" << source << "\" "
-                << "\"" << destination << "\"";
-        if (!extraArg.empty())
-            outfile << " " << extraArg;
-        outfile << "\";\n";
-
-        std::cout << "Shortcut '" << optionalCommand2 << "' saved in config.\n";
-    }
-
-    // Perform the copy operation
-    if (command == "copy") {
-        try {
-            fs::copy(srcPath, dstPath,
-                     fs::copy_options::recursive | fs::copy_options::overwrite_existing);
-            std::cout << "Copy completed.\n";
-        } catch (fs::filesystem_error& e) {
-            std::cerr << "Filesystem error: " << e.what() << "\n";
-        }
+    } 
+    else {
+        std::cout << "Invalid command or shortcut not found.\n";
     }
 
     return 0;

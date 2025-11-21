@@ -1,70 +1,120 @@
 # EasyCopy
 
-**EasyCopy** is a simple, cross-platform command-line tool for quickly copying files. It’s designed to help anyone who needs to move files between folders efficiently—whether for game saves, backups, or general file management.
+**EasyCopy** is a simple, cross-platform command-line tool for quickly copying directories and their contents. It’s useful for moving game saves, quick backups, or local file management.
 
 ## What it does
-- Copy all files inside a folder to another location.  
-- Save repeated copy tasks as shortcuts.  
-- Run or delete saved shortcuts with a single command.  
-- Check that source files exist before copying to avoid errors.  
+- Recursively copy all files and folders from a source directory to a destination.
+- Save repeated copy tasks as named shortcuts.
+- Run, list, or delete saved shortcuts with a single command.
+- Validate that the source directory exists before copying to avoid errors.
 
-**Note:** Currently, EasyCopy copies the files inside a folder but does **not** create the parent folder at the destination. Support for full directory copy will be added in the future.
-
-## Features
-- Recursive file copying within directories  
-- Creation and persistence of named shortcuts  
-- Shortcut execution and deletion by name  
-- Source path validation prior to copying  
-- Shortcuts stored and editable in `easycopy_config.cpp`  
+## Important notes about this build
+- Shortcuts are stored in a plain text config file located in the user's home:
+  - Windows: %USERPROFILE%\easycopy_config.txt
+  - Linux/macOS: $HOME/.easycopy_config.txt
+- Each config line uses the pipe '|' as delimiter:
+  name|source|destination
+  - This allows spaces in paths. Do not include '|' in your paths.
+- The program expects the source to be an existing directory. It copies the entire directory tree into the destination (creating destination directories as needed) and overwrites existing files.
+- Creating, deleting, or updating shortcuts rewrites the global config file above. Manual edits are allowed but must follow the pipe-separated format exactly.
 
 ## Quick Usage
-Copy files from one folder to another:
-```bash
-ec copy "<source>" "<destination>"
-```
-> Tips:  
-> - Quote paths that contain spaces.  
-> - Copying is recursive and will overwrite existing files automatically.
 
-## Shortcuts
-**Create a shortcut**:
-```bash
-ec shortcut <name> copy "<source>" "<destination>"
-```
-
-**Run a shortcut**:
+Run a saved shortcut by name:
 ```bash
 ec <shortcutName>
 ```
 
-**Delete a shortcut**:
+Create or update a shortcut (saved to the global config):
+```bash
+ec shortcut <name> copy "<source>" "<destination>"
+```
+
+Delete a saved shortcut:
 ```bash
 ec delete <name>
 ```
 
-> Once created, shortcuts can be run anytime without typing the full source and destination.
+List saved shortcuts:
+```bash
+ec list
+```
+
+One-off copy (no shortcut saved):
+```bash
+ec copy "<source>" "<destination>"
+```
+
+Tips:
+- Quote paths that contain spaces when typing commands in your shell.
+- The tool validates that the source exists and is a directory before copying.
+- Copying is recursive and will overwrite existing files at the destination.
+- Avoid using the pipe character '|' inside paths because it is the config field separator.
+
+To view the config file directly:
+```powershell
+# Windows
+type "%USERPROFILE%\easycopy_config.txt"
+```
+```bash
+# Linux/macOS
+cat "$HOME/.easycopy_config.txt"
+```
+
+## Examples
+
+One-off copy (Linux/macOS):
+```bash
+ec copy "/home/me/saves" "/mnt/backup/saves"
+```
+
+One-off copy (Windows PowerShell):
+```powershell
+ec copy "C:\Games\BG3\Saves" "D:\Backup\Game Saves"
+```
+
+Create a shortcut named `mygame`:
+```bash
+ec shortcut mygame copy "C:\Games\BG3\Saves" "D:\Backup\Game Saves"
+```
+
+Run the saved shortcut:
+```bash
+ec mygame
+```
+
+Delete the saved shortcut:
+```bash
+ec delete mygame
+```
+
+List shortcuts:
+```bash
+ec list
+```
 
 ## Installation
 
-### Windows
-1. Move the downloaded file to a permanent folder, e.g., `C:\Tools\EasyCopy\`.
-2. Rename it to `ec.exe` for consistency.
-3. Add the folder to your PATH:
+Windows
+1. Place `ec.exe` in a permanent folder, e.g. `C:\Tools\EasyCopy\`.
+2. Add the folder to your PATH (PowerShell):
 ```powershell
 setx PATH "$env:PATH;C:\Tools\EasyCopy"
 ```
-4. Restart your terminal and run:
+3. Restart your terminal and run commands like:
 ```powershell
 ec copy "C:\from" "D:\to"
 ```
 
-### Linux
-**Global installation (all users)**:
+Linux
+
+Global (all users):
 ```bash
 sudo mv "{downloaded_file}" /usr/local/bin/ec
 sudo chmod +x /usr/local/bin/ec
 ```
-**Per-user installation**:
+
+Per-user:
 ```bash
 mkdir -p "$HOME/tools"
 mv "{downloaded_file}" "$HOME/tools/ec"
@@ -73,15 +123,17 @@ echo 'export PATH="$PATH:$HOME/tools"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-### macOS
-Prebuilt binary is **not provided**, compile locally:
+macOS
+
+Build and install system-wide:
 ```bash
 xcode-select --install
 clang++ -std=c++17 src/EasyCopy.cpp -o ec
 sudo mv ec /usr/local/bin/ec
 sudo chmod +x /usr/local/bin/ec
 ```
-Or per-user:
+
+Per-user:
 ```bash
 mkdir -p "$HOME/Tools/EasyCopy"
 mv ec "$HOME/Tools/EasyCopy/ec"
@@ -90,48 +142,43 @@ echo 'export PATH="$PATH:$HOME/Tools/EasyCopy"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-**32-bit machines:** 64-bit files won’t run. Compile locally with:
+32-bit machines: compile locally with:
 ```bash
 g++ -std=c++17 -m32 src/EasyCopy.cpp -o ec
 ```
 
-## Examples
+## Compiling
+
+Requires a C++17 compiler with <filesystem> support.
+
+Windows (Clang or MinGW):
 ```bash
-# One-off copy
-ec copy "/home/me/saves" "/mnt/backup/saves"
-ec copy "C:\Games\BG3\Saves" "D:\Backup\BG3"
-
-# Create a shortcut
-ec shortcut bg3 copy "C:\Games\BG3\Saves" "D:\Backup\BG3"
-
-# Run a saved shortcut
-ec bg3
-
-# Delete a saved shortcut
-ec delete bg3
+clang++ -std=c++17 src/EasyCopy.cpp -o ec.exe
+# or
+g++ -std=c++17 src/EasyCopy.cpp -o ec.exe
 ```
 
-## Cheat Sheet
+macOS:
 ```bash
-# Run saved shortcut
-ec <name>
+clang++ -std=c++17 src/EasyCopy.cpp -o ec
+```
 
-# Delete a saved shortcut
-ec delete <name>
+Linux:
+```bash
+g++ -std=c++17 src/EasyCopy.cpp -o ec
+```
 
-# Create a copy shortcut
-ec shortcut <name> copy <src> <dst>
-
-# One-off copy
-ec copy "<src>" "<dst>"
+On Debian/Ubuntu, if needed:
+```bash
+sudo apt install build-essential
 ```
 
 ## Troubleshooting
-- Ensure the source folder exists.  
-- Quote any paths with spaces.  
-- Make sure the destination folder is writable.  
-- EasyCopy reads shortcuts from the current folder; run it from the correct location or use full paths.  
-- For large backups, consider a dedicated backup tool.  
+- Ensure the source directory exists and is readable.
+- Quote any paths with spaces when invoking ec.
+- Make sure the destination is writable (or use a destination you can create).
+- The program reads/writes the global config in your home directory (see Important notes) — use `ec list` or open the config file to inspect saved shortcuts.
+- For large or complex backups, consider a dedicated backup tool.
 
 ## License
-EasyCopy is licensed under **GPL-3.0**. See the [LICENSE](LICENSE) file
+EasyCopy is licensed under GPL-3.0. See the LICENSE file.
