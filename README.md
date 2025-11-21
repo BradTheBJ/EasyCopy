@@ -1,239 +1,263 @@
-
 # EasyCopy
 
-EasyCopy is a small, cross‑platform command‑line utility for quickly copying directories and their contents. It is intended for simple local transfers (game saves, quick backups, etc.), is easy to build from source, and stores simple named shortcuts for repeated copy tasks.
+EasyCopy is a small, cross-platform command-line utility for quickly copying directories and their contents. It's intended for simple local transfers (game saves, quick backups). Shortcuts are stored in a minimal plain-text config file.
 
-> **Note:** This tool was originally developed for personal use. While it is functional across Windows, Linux, and macOS, it may not cover every use case or meet all user expectations. Use at your own discretion.
-
+See implementation: `src/EasyCopy.cpp`.
 
 ---
 
 ## Highlights
 
-- Recursive copy of a source directory into a destination (creates destination directories, overwrites existing files).
-- Save repeated copy tasks as named shortcuts.
-- Run, list, or delete shortcuts.
-- Shortcuts stored in a single plain‑text config file in your home directory.
+- Recursively copy a source directory into a destination (creates destination dirs, overwrites files).
+- If the destination exists and is not empty, EasyCopy prompts for confirmation before copying.
+- Save, run, list, and delete named shortcuts.
+- Global config stored in your home directory.
+- Validates source exists and is a directory before copying.
 
 ---
 
-## Config & Format
-
-- Global config file:
-  - Windows: %USERPROFILE%\easycopy_config.txt
-  - Linux / macOS: $HOME/.easycopy_config.txt
-- Each line in the config uses the pipe (|) delimiter:
-  name|source|destination
-- Paths may contain spaces but must not contain the pipe character (|).
-- Use `ec list` to print saved shortcuts or open the config directly to inspect/edit.
-
-View config:
-```powershell
-# Windows
-type "%USERPROFILE%\easycopy_config.txt"
-```
-```bash
-# Linux / macOS
-cat "$HOME/.easycopy_config.txt"
-```
-
----
-
-## Quick Usage
+## Quick commands
 
 Run a saved shortcut:
 ```bash
 ec <shortcutName>
 ```
 
-Create or update a shortcut (saved to global config):
-```bash
-ec shortcut <name> copy "<source>" "<destination>"
-```
-
-Delete a shortcut:
-```bash
-ec delete <name>
-```
-
-List saved shortcuts:
-```bash
-ec list
-```
-
-One-off copy (no shortcut saved):
+One-off copy:
 ```bash
 ec copy "<source>" "<destination>"
 ```
 
+Create/update shortcut:
+```bash
+ec shortcut <name> copy "<source>" "<destination>"
+```
+
+Delete shortcut:
+```bash
+ec delete <name>
+```
+
+List shortcuts:
+```bash
+ec list
+```
+
 Notes:
-- Always quote paths that contain spaces.
-- The program validates the source path exists and is a directory before copying.
+- Quote paths containing spaces.
+- Running `ec` with no args prints usage.
 
 ---
 
-## Examples (consistent)
+## Verbose mode (new)
 
+- Enable detailed output by adding the literal word `verbose` as the last argument.
+- Syntax examples:
+  - One-off copy with verbose:
+    ```bash
+    ec copy "<source>" "<destination>" verbose
+    ```
+  - Create shortcut and copy immediately with verbose:
+    ```bash
+    ec shortcut mygame copy "<source>" "<destination>" verbose
+    ```
+  - Run a saved shortcut with verbose:
+    ```bash
+    ec mygame verbose
+    ```
+- What verbose shows:
+  - Directory creation lines: "[DIR ] Created: <path>"
+  - File copy lines:      "[FILE] Copied: <src> -> <dst>"
+  - Final status messages indicating success or failure.
+- Note: When creating a shortcut with `verbose`, EasyCopy saves the shortcut and then attempts the copy immediately, printing per-file and per-directory messages.
+
+- Confirmation behavior:
+  - EasyCopy prompts for confirmation if the source/destination conditions require it (the program prompts when the folder is not empty). Enter `y` or `Y` to proceed; any other response cancels the operation.
+  - Verbose output appears after you confirm.
+
+---
+
+## Config file & format
+
+- Windows: `%USERPROFILE%\easycopy_config.txt`  
+- Linux/macOS: `$HOME/.easycopy_config.txt`
+
+Each line:
+```
+name|source|destination
+```
+The pipe `|` separates fields; do not include `|` in paths. Use `ec list` to view shortcuts.
+
+---
+
+## Examples
+
+Linux/macOS one-off:
 ```bash
-# One-off (Linux/macOS)
 ec copy "/home/me/saves" "/mnt/backup/saves"
+```
 
-# One-off (Windows PowerShell)
+Windows PowerShell one-off:
+```powershell
 ec copy "C:\Games\BG3\Saves" "D:\Backup\Game Saves"
+```
 
-# Save a shortcut
+Create, run, delete:
+```bash
 ec shortcut mygame copy "C:\Games\BG3\Saves" "D:\Backup\Game Saves"
-
-# Run saved shortcut
 ec mygame
-
-# Delete saved shortcut
 ec delete mygame
-
-# List shortcuts
 ec list
+```
+
+Verbose example:
+```bash
+ec copy "/home/me/saves" "/mnt/backup/saves" verbose
 ```
 
 ---
 
-## Installation
+## Installation (prebuilt binary recommended)
 
-Two common workflows: using a prebuilt binary, or compiling locally.
+Windows
+1. Download the 64‑bit `ec.exe`.
+2. Place it in a permanent folder, e.g. `C:\Tools\EasyCopy\`.
+3. Rename to `ec.exe` for consistent usage:
+```powershell
+Rename-Item "DownloadedName.exe" "ec.exe"
+```
+4. Add folder to PATH (PowerShell):
+```powershell
+setx PATH "$env:PATH;C:\Tools\EasyCopy"
+# then open a new shell
+```
 
-Prebuilt binary (recommended)
-- Windows:
-  1. Download ec.exe and place it in a permanent folder, e.g. `C:\Tools\EasyCopy\`.
-  2. Add that folder to PATH (PowerShell):
-     ```powershell
-     setx PATH "$env:PATH;C:\Tools\EasyCopy"
-     ```
-     Restart your shell (or log out/in) for the change to take effect.
-  3. Run: `ec` or `ec copy ...`
+macOS / Linux
+1. Rename the downloaded file to `ec`, make it executable and move to a PATH directory:
+```bash
+mv downloaded-file ec
+chmod +x ec
+sudo mv ec /usr/local/bin/
+```
+2. Verify:
+```bash
+which ec
+ec --help
+```
 
-  Alternatively use the System -> Environment Variables GUI to add the folder to PATH.
-
-- macOS / Linux:
-  1. Move the downloaded binary to a directory already on PATH:
-     ```bash
-     # system-wide (requires sudo)
-     sudo mv ec /usr/local/bin/
-     sudo chmod +x /usr/local/bin/ec
-     ```
-     On Apple Silicon Homebrew systems, `/opt/homebrew/bin` may be appropriate.
-  2. Verify with `which ec` or `ec --help`.
-
-Local compilation
-- Requirements: C++17 compiler with <filesystem> support (GCC 9+, Clang recent versions, MSVC 2017+).
-- Common compile commands:
-  - Linux / macOS:
-    ```bash
-    g++ -std=c++17 src/EasyCopy.cpp -o ec
-    # or
-    clang++ -std=c++17 src/EasyCopy.cpp -o ec
-    ```
-    On older GCC (<9) you may need `-lstdc++fs`:
-    ```bash
-    g++ -std=c++17 src/EasyCopy.cpp -lstdc++fs -o ec
-    ```
-  - Windows (MSYS/MinGW or clang):
-    ```bash
-    g++ -std=c++17 src/EasyCopy.cpp -o ec.exe
-    # or
-    clang++ -std=c++17 src/EasyCopy.cpp -o ec.exe
-    ```
-  - 32-bit builds (if required):
-    ```bash
-    g++ -std=c++17 -m32 src/EasyCopy.cpp -o ec    # may require multilib packages on Linux (e.g. gcc-multilib)
-    ```
-
-After building, move the binary to a PATH location or add its folder to your PATH as shown above.
+Note: prebuilt 32‑bit binaries are provided only for Linux. Windows and macOS prebuilt releases are 64‑bit only.
 
 ---
 
-## PATH — common scenarios
+## Local compilation
 
-- Windows PowerShell:
-  ```powershell
-  setx PATH "$env:PATH;C:\Tools\EasyCopy"
-  # then restart shell
-  ```
+Requirements: C++17 compiler with `<filesystem>` support (GCC 9+, recent Clang, or MSVC 2017+).
 
-- macOS / Linux (per-user custom folder):
-  ```bash
-  mkdir -p "$HOME/tools"
-  mv ec "$HOME/tools/"
-  chmod +x "$HOME/tools/ec"
-  echo 'export PATH="$PATH:$HOME/tools"' >> ~/.bashrc   # or ~/.zshrc
-  source ~/.bashrc
-  ```
+Linux / macOS:
+```bash
+g++ -std=c++17 src/EasyCopy.cpp -o ec
+# or
+clang++ -std=c++17 src/EasyCopy.cpp -o ec
+```
+If `<filesystem>` errors occur with older GCC:
+```bash
+g++ -std=c++17 src/EasyCopy.cpp -lstdc++fs -o ec
+```
 
-- System-wide install uses `/usr/local/bin` (requires sudo).
+Windows (MinGW / MSYS / clang):
+```bash
+g++ -std=c++17 src/EasyCopy.cpp -o ec.exe
+```
 
-Note: `setx` updates the user environment for new shells; open a new terminal window after using it.
+32‑bit Linux example (requires multilib):
+```bash
+g++ -std=c++17 -m32 src/EasyCopy.cpp -o ec32
+```
+
+After build, rename to `ec`/`ec.exe` and move to a PATH location.
 
 ---
 
-## 32‑bit systems & compatibility notes
+## Adding EasyCopy to PATH
 
-- Many modern macOS and Linux distributions are 64‑bit only; macOS dropped 32‑bit app support starting with Catalina (10.15).
-- To build a 32‑bit binary on Linux, install multilib toolchains (e.g. `gcc-multilib`) and compile with `-m32`.
-- On Windows, use a 32‑bit toolchain (MinGW 32‑bit) if you need a 32‑bit executable.
-- If compilation fails due to <filesystem> issues, try a newer compiler or add `-lstdc++fs` when using older GCC versions.
+Windows (PowerShell):
+```powershell
+setx PATH "$env:PATH;C:\Tools\EasyCopy"
+# open a new terminal
+where.exe ec
+```
+
+macOS / Linux (per-user):
+```bash
+mkdir -p "$HOME/tools"
+mv ec "$HOME/tools/ec"
+chmod +x "$HOME/tools/ec"
+echo 'export PATH="$PATH:$HOME/tools"' >> ~/.bashrc   # or ~/.zshrc
+source ~/.bashrc
+which ec
+```
+
+System-wide (Unix):
+```bash
+sudo mv ec /usr/local/bin/
+sudo chmod +x /usr/local/bin/ec
+which ec
+```
+
+Recommendation: rename the executable to `ec` (Linux/macOS) or `ec.exe` (Windows) before adding to PATH so commands and shortcuts remain consistent.
+
+---
+
+## 32‑bit compatibility
+
+- Prebuilt 32‑bit binaries: only for Linux.
+- Windows and macOS prebuilt releases are 64‑bit only.
+- To build 32‑bit on Linux: install multilib packages (e.g. `gcc-multilib`) and compile with `-m32`.
+- Modern macOS (10.15+) does not support 32‑bit user apps.
 
 ---
 
 ## Troubleshooting (actionable)
 
-- "Failed to copy. Check source path."
-  - Ensure the source exists and is a directory:
-    ```bash
-    ls -la "/path/to/source"
-    ```
-  - Confirm permissions (read for source, write for destination).
+Failed copy — check source:
+```bash
+ls -la "/path/to/source"
+# PowerShell:
+Get-ChildItem "C:\path\to\source"
+```
+Permissions — ensure read access to source and write access to destination.
 
-- Shortcuts missing or not applied:
-  - Confirm config file location and contents:
-    ```bash
-    # Windows
-    type "%USERPROFILE%\easycopy_config.txt"
+Shortcuts missing — inspect config:
+```powershell
+type "%USERPROFILE%\easycopy_config.txt"
+```
+```bash
+cat "$HOME/.easycopy_config.txt"
+```
+Each line must be `name|source|destination`.
 
-    # Linux/macOS
-    cat "$HOME/.easycopy_config.txt"
-    ```
-  - Each line must be: name|source|destination
+PATH not found — verify:
+```bash
+which ec        # Linux/macOS
+where.exe ec    # Windows
+```
+On Windows, `setx` requires a new shell session.
 
-- PATH issues:
-  - Confirm `ec` is on PATH:
-    ```bash
-    which ec    # Linux/macOS
-    where.exe ec  # Windows
-    ```
-  - On Windows, after `setx` you must start a new shell.
-
-- Build errors:
-  - Check your compiler version:
-    ```bash
-    g++ --version
-    clang++ --version
-    ```
-  - For older compilers, add `-lstdc++fs` or upgrade the compiler.
-
-- Permission errors:
-  - On Linux/macOS, use `sudo` only if destination requires root ownership; prefer a location you own.
+Build errors — check compiler and consider `-lstdc++fs` or upgrading.
 
 ---
 
-## Security & Limitations
+## Security & limitations
 
-- EasyCopy performs direct file copies and will overwrite files at the destination.
-- Avoid storing sensitive credentials in shortcuts or using remote/automated transfers — EasyCopy is for local filesystem operations.
-- The config delimiter is `|`; do not include `|` in paths.
-
----
-
-## Contributing & License
-
-- EasyCopy is licensed under GPL‑3.0. See the LICENSE file.
-- Contributions welcome: fork, modify, and send pull requests. Keep changes minimal and well‑documented.
+- Overwrites files at destination.
+- Do not store secrets in shortcuts.
+- `|` is the config delimiter — avoid using it in paths.
 
 ---
+
+## License & contributions
+
+- License: GPL‑3.0. See LICENSE.
+- Contributions welcome: fork, patch, open a PR.
+
+Source in `src/EasyCopy.cpp` is authoritative for CLI behavior.

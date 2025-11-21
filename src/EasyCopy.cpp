@@ -4,7 +4,6 @@
 #include <fstream>
 #include <filesystem>
 #include <string>
-#include <vector>
 #include <map>
 
 namespace fs = std::filesystem;
@@ -13,18 +12,17 @@ namespace fs = std::filesystem;
 fs::path getGlobalConfigPath() {
 #ifdef _WIN32
     char* userProfile = std::getenv("USERPROFILE");
-    return fs::path(userProfile) / "easycopy_config.txt"; // Windows
+    return fs::path(userProfile) / "easycopy_config.txt";
 #else
     char* home = std::getenv("HOME");
-    return fs::path(home) / ".easycopy_config.txt"; // Linux/macOS
+    return fs::path(home) / ".easycopy_config.txt";
 #endif
 }
 
-// Load shortcuts from config (supports spaces using '|' delimiter)
+// Load shortcuts from config
 std::map<std::string, std::pair<std::string, std::string>> loadShortcuts() {
     std::map<std::string, std::pair<std::string, std::string>> shortcuts;
     fs::path configPath = getGlobalConfigPath();
-
     if (!fs::exists(configPath)) return shortcuts;
 
     std::ifstream file(configPath);
@@ -51,20 +49,30 @@ void saveShortcuts(const std::map<std::string, std::pair<std::string, std::strin
     }
 }
 
-// Copy all files inside source to destination recursively
-bool copyFolder(const fs::path& src, const fs::path& dst) {
+// Copy folder recursively with optional verbose and confirmation
+bool copyFolder(const fs::path& src, const fs::path& dst, bool verbose = false, bool askConfirmation = true) {
     if (!fs::exists(src) || !fs::is_directory(src)) return false;
+
     if (!fs::exists(dst)) fs::create_directories(dst);
 
+    if (askConfirmation) {
+        std::string response;
+        std::cout << (fs::is_empty(src) ? "Source folder is empty." : "Source folder is not empty.")
+                  << " Proceed with copy? (y/n): ";
+        std::cin >> response;
+        if (!(response == "y" || response == "Y")) return false;
+    }
+
     for (auto& entry : fs::recursive_directory_iterator(src)) {
-        const auto& path = entry.path();
-        auto relative = fs::relative(path, src);
+        auto relative = fs::relative(entry.path(), src);
         fs::path destPath = dst / relative;
 
-        if (fs::is_directory(path)) {
+        if (fs::is_directory(entry.path())) {
             fs::create_directories(destPath);
+            if (verbose) std::cout << "[DIR ] Created: " << destPath << "\n";
         } else {
-            fs::copy_file(path, destPath, fs::copy_options::overwrite_existing);
+            fs::copy_file(entry.path(), destPath, fs::copy_options::overwrite_existing);
+            if (verbose) std::cout << "[FILE] Copied: " << entry.path() << " -> " << destPath << "\n";
         }
     }
     return true;
@@ -73,34 +81,47 @@ bool copyFolder(const fs::path& src, const fs::path& dst) {
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cout << "Usage:\n";
-        std::cout << "  ec copy <src> <dst>\n";
-        std::cout << "  ec shortcut <name> copy <src> <dst>\n";
-        std::cout << "  ec <shortcutName>\n";
+        std::cout << "  ec copy <src> <dst> [verbose]\n";
+        std::cout << "  ec shortcut <name> copy <src> <dst> [verbose]\n";
+        std::cout << "  ec <shortcutName> [verbose]\n";
         std::cout << "  ec delete <name>\n";
         std::cout << "  ec list\n";
         return 0;
     }
 
-    std::map<std::string, std::pair<std::string, std::string>> shortcuts = loadShortcuts();
+    auto shortcuts = loadShortcuts();
     std::string command = argv[1];
+    bool verbose = (argc >= 2 && std::string(argv[argc - 1]) == "verbose");
 
-    if (command == "copy" && argc == 4) {
+    // Direct copy command
+    if (command == "copy" && (argc == 4 || (argc == 5 && verbose))) {
         fs::path src = argv[2];
         fs::path dst = argv[3];
-        if (copyFolder(src, dst)) {
+        if (copyFolder(src, dst, verbose)) {
             std::cout << "Copied successfully.\n";
         } else {
             std::cout << "Failed to copy. Check source path.\n";
         }
-    } 
-    else if (command == "shortcut" && argc == 6 && std::string(argv[3]) == "copy") {
+    }
+    // Create or overwrite a shortcut
+    else if (command == "shortcut" && argc >= 6 && std::string(argv[3]) == "copy") {
         std::string name = argv[2];
         std::string src = argv[4];
         std::string dst = argv[5];
+
         shortcuts[name] = {src, dst};
         saveShortcuts(shortcuts);
         std::cout << "Shortcut '" << name << "' saved.\n";
-    } 
+
+        if (verbose) {
+            if (copyFolder(src, dst, true)) {
+                std::cout << "[VERBOSE] Copied shortcut immediately.\n";
+            } else {
+                std::cout << "[VERBOSE] Failed to copy shortcut.\n";
+            }
+        }
+    }
+    // Delete a shortcut
     else if (command == "delete" && argc == 3) {
         std::string name = argv[2];
         if (shortcuts.erase(name)) {
@@ -109,7 +130,8 @@ int main(int argc, char* argv[]) {
         } else {
             std::cout << "Shortcut not found.\n";
         }
-    } 
+    }
+    // List all shortcuts
     else if (command == "list") {
         if (shortcuts.empty()) {
             std::cout << "No shortcuts saved.\n";
@@ -120,14 +142,16 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+    // Run a saved shortcut
     else if (shortcuts.count(command)) {
         auto [src, dst] = shortcuts[command];
-        if (copyFolder(src, dst)) {
+        bool hasFiles = !fs::is_empty(src); // ask confirmation if folder has files
+        if (copyFolder(src, dst, verbose, hasFiles)) {
             std::cout << "Copied successfully via shortcut '" << command << "'.\n";
         } else {
             std::cout << "Failed to copy. Check source path.\n";
         }
-    } 
+    }
     else {
         std::cout << "Invalid command or shortcut not found.\n";
     }
