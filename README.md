@@ -12,6 +12,8 @@ See implementation: `src/EasyCopy.cpp`.
 - Save, run, list, and delete named shortcuts.
 - Global config stored in your home directory.
 - Validates source exists and is a directory before copying.
+- Confirmation prompt appears when source folder is not empty (for direct copies and shortcut creation).
+- Optional verbose mode shows each file and directory operation.
 
 ---
 
@@ -19,17 +21,17 @@ See implementation: `src/EasyCopy.cpp`.
 
 Run a saved shortcut:
 ```bash
-ec <shortcutName>
+ec <shortcutName> [verbose]
 ```
 
 One-off copy:
 ```bash
-ec copy "<source>" "<destination>"
+ec copy "<source>" "<destination>" [verbose]
 ```
 
 Create/update shortcut:
 ```bash
-ec shortcut <name> copy "<source>" "<destination>"
+ec shortcut <name> copy "<source>" "<destination>" [verbose]
 ```
 
 Delete shortcut:
@@ -41,6 +43,8 @@ List shortcuts:
 ```bash
 ec list
 ```
+
+Running with no arguments displays usage information.
 
 ---
 
@@ -62,6 +66,8 @@ The pipe `|` separates fields; do not include `|` in paths. Use `ec list` to vie
 Linux/macOS one-off:
 ```bash
 ec copy "/home/me/saves" "/mnt/backup/saves"
+# With verbose output:
+ec copy "/home/me/saves" "/mnt/backup/saves" verbose
 ```
 
 Windows PowerShell one-off:
@@ -71,15 +77,23 @@ ec copy "C:\Games\BG3\Saves" "D:\Backup\Game Saves"
 
 Create, run, delete:
 ```bash
+# Create shortcut (saves absolute paths)
 ec shortcut mygame copy "C:\Games\BG3\Saves" "D:\Backup\Game Saves"
-ec mygame
-ec delete mygame
-ec list
-```
 
-Verbose example:
-```bash
-ec copy "/home/me/saves" "/mnt/backup/saves" verbose
+# Create shortcut and immediately copy with verbose output
+ec shortcut mygame copy "C:\Games\BG3\Saves" "D:\Backup\Game Saves" verbose
+
+# Run saved shortcut
+ec mygame
+
+# Run with verbose output
+ec mygame verbose
+
+# Delete shortcut
+ec delete mygame
+
+# List all shortcuts
+ec list
 ```
 
 ---
@@ -99,7 +113,21 @@ setx PATH "$env:PATH;C:\Tools\EasyCopy"
 # then open a new shell
 ```
 
-macOS / Linux
+macOS
+1. Download the 64‑bit macOS prebuilt binary.
+2. Rename the downloaded file to `ec` and move to a PATH directory:
+```bash
+mv downloaded-file ec
+chmod +x ec
+sudo mv ec /usr/local/bin/
+```
+3. Verify:
+```bash
+which ec
+ec
+```
+
+Linux
 1. Rename the downloaded file to `ec` and move to a PATH directory:
 ```bash
 mv downloaded-file ec
@@ -109,10 +137,10 @@ sudo mv ec /usr/local/bin/
 2. Verify:
 ```bash
 which ec
-ec --help
+ec
 ```
 
-Note: prebuilt 32‑bit binaries are provided only for Linux. Windows and macOS prebuilt releases are 64‑bit only. If you need a 32‑bit binary on those platforms, build locally.
+Note: Prebuilt binaries are available for Windows (64‑bit only), macOS (64‑bit only), and Linux (32‑bit and 64‑bit). If you need a 32‑bit binary on Windows or macOS, build locally.
 
 ---
 
@@ -182,7 +210,32 @@ which ec
 
 ---
 
-## 32‑bit compatibility
+## Behavior details
+
+**Confirmation prompts:**
+- Direct copies (`ec copy`) prompt for confirmation if the source folder is not empty
+- Saved shortcuts prompt for confirmation if the source folder is not empty when run
+- Empty source folders do not prompt for confirmation
+- User must enter `y` or `Y` to proceed; any other input cancels the operation
+
+**Verbose mode:**
+- Add `verbose` as the last argument to any command
+- Shows `[DIR ] Created: <path>` for each directory
+- Shows `[FILE] Copied: <source> -> <destination>` for each file
+- When creating a shortcut with `verbose`, it saves the shortcut AND immediately performs the copy with verbose output
+
+**Shortcut storage:**
+- Shortcuts store absolute paths (converted via `fs::absolute()`)
+- Paths are stored exactly as provided after conversion to absolute form
+
+**File operations:**
+- Overwrites existing files at destination (`fs::copy_options::overwrite_existing`)
+- Creates destination directories as needed
+- Uses recursive iteration to copy all nested files and folders
+
+---
+
+## Troubleshooting
 
 Failed copy — check source:
 ```bash
