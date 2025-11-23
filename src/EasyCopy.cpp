@@ -26,7 +26,7 @@ std::map<std::string, std::pair<std::string, std::string>> loadShortcuts() {
     if (!fs::exists(cfg)) return shortcuts;
     std::ifstream f(cfg);
     std::string line;
-    while (std::getline(file, line)) {
+    while (std::getline(f, line)) {
         size_t pos1 = line.find('|');
         size_t pos2 = line.rfind('|');
         if (pos1 != std::string::npos && pos2 != pos1) {
